@@ -14,6 +14,7 @@
 package com.alibaba.nacos.config.server.service.datasource;
 
 import com.alibaba.nacos.common.utils.Preconditions;
+import com.alibaba.nacos.common.utils.StringUtils;
 import com.zaxxer.hikari.HikariDataSource;
 import org.apache.commons.collections.CollectionUtils;
 import org.springframework.boot.context.properties.bind.Bindable;
@@ -40,6 +41,8 @@ public class ExternalDataSourceProperties {
     
     private Integer num;
     
+    private String jdbcDriverName;
+    
     private List<String> url = new ArrayList<>();
     
     private List<String> user = new ArrayList<>();
@@ -48,6 +51,10 @@ public class ExternalDataSourceProperties {
     
     public void setNum(Integer num) {
         this.num = num;
+    }
+    
+    public void setJdbcDriverName(String jdbcDriverName) {
+        this.jdbcDriverName = jdbcDriverName;
     }
     
     public void setUrl(List<String> url) {
@@ -79,7 +86,11 @@ public class ExternalDataSourceProperties {
             int currentSize = index + 1;
             Preconditions.checkArgument(url.size() >= currentSize, "db.url.%s is null", index);
             DataSourcePoolProperties poolProperties = DataSourcePoolProperties.build(environment);
-            poolProperties.setDriverClassName(JDBC_DRIVER_NAME);
+            if (StringUtils.isNotEmpty(jdbcDriverName)) {
+                poolProperties.setDriverClassName(jdbcDriverName);
+            } else {
+                poolProperties.setDriverClassName(JDBC_DRIVER_NAME);
+            }
             poolProperties.setJdbcUrl(url.get(index).trim());
             poolProperties.setUsername(getOrDefault(user, index, user.get(0)).trim());
             poolProperties.setPassword(getOrDefault(password, index, password.get(0)).trim());

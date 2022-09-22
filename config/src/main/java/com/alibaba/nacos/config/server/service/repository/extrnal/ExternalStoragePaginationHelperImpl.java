@@ -16,6 +16,7 @@
 
 package com.alibaba.nacos.config.server.service.repository.extrnal;
 
+import com.alibaba.nacos.common.utils.StringUtils;
 import com.alibaba.nacos.config.server.model.Page;
 import com.alibaba.nacos.config.server.service.repository.PaginationHelper;
 import com.alibaba.nacos.config.server.service.sql.EmbeddedStorageContextUtils;
@@ -224,6 +225,8 @@ class ExternalStoragePaginationHelperImpl<E> implements PaginationHelper {
         
         if (isDerby()) {
             sqlUpdate = sqlUpdate.replaceAll("LIMIT \\?", "OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY");
+        } else if (isKingbaseES()) {
+            sqlUpdate = sqlUpdate.replaceAll("LIMIT \\?", "AND ROWNUM <= ?");
         }
         
         try {
@@ -238,4 +241,8 @@ class ExternalStoragePaginationHelperImpl<E> implements PaginationHelper {
                 .isEmbeddedStorage();
     }
     
+    private boolean isKingbaseES() {
+        return StringUtils.isNotEmpty(EnvUtil.getProperty("db.jdbcDriverName"))
+                && EnvUtil.getProperty("db.jdbcDriverName").contains("kingbase8");
+    }
 }

@@ -33,7 +33,6 @@ import javax.annotation.PostConstruct;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.List;
 
@@ -78,7 +77,7 @@ public class TenantCapacityPersistService {
     
     public TenantCapacity getTenantCapacity(String tenantId) {
         String sql =
-                "SELECT id, quota, `usage`, `max_size`, max_aggr_count, max_aggr_size, tenant_id FROM tenant_capacity "
+                "SELECT id, quota, usage, max_size, max_aggr_count, max_aggr_size, tenant_id FROM tenant_capacity "
                         + "WHERE tenant_id=?";
         List<TenantCapacity> list = jdbcTemplate.query(sql, new Object[] {tenantId}, TENANT_CAPACITY_ROW_MAPPER);
         if (list.isEmpty()) {
@@ -95,12 +94,12 @@ public class TenantCapacityPersistService {
      */
     public boolean insertTenantCapacity(final TenantCapacity tenantCapacity) {
         final String sql =
-                "INSERT INTO tenant_capacity (tenant_id, quota, `usage`, `max_size`, max_aggr_count, max_aggr_size, "
+                "INSERT INTO tenant_capacity (tenant_id, quota, usage, max_size, max_aggr_count, max_aggr_size, "
                         + "gmt_create, gmt_modified) SELECT ?, ?, count(*), ?, ?, ?, ?, ? FROM config_info WHERE tenant_id=?;";
         try {
             GeneratedKeyHolder generatedKeyHolder = new GeneratedKeyHolder();
             PreparedStatementCreator preparedStatementCreator = connection -> {
-                PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+                PreparedStatement ps = connection.prepareStatement(sql, new String[] {"id"});
                 String tenant = tenantCapacity.getTenant();
                 ps.setString(1, tenant);
                 ps.setInt(2, tenantCapacity.getQuota());
@@ -129,7 +128,7 @@ public class TenantCapacityPersistService {
      */
     public boolean incrementUsageWithDefaultQuotaLimit(TenantCapacity tenantCapacity) {
         String sql =
-                "UPDATE tenant_capacity SET `usage` = `usage` + 1, gmt_modified = ? WHERE tenant_id = ? AND `usage` <"
+                "UPDATE tenant_capacity SET usage = usage + 1, gmt_modified = ? WHERE tenant_id = ? AND usage <"
                         + " ? AND quota = 0";
         try {
             int affectRow = jdbcTemplate.update(sql, tenantCapacity.getGmtModified(), tenantCapacity.getTenant(),
@@ -149,7 +148,7 @@ public class TenantCapacityPersistService {
      */
     public boolean incrementUsageWithQuotaLimit(TenantCapacity tenantCapacity) {
         String sql =
-                "UPDATE tenant_capacity SET `usage` = `usage` + 1, gmt_modified = ? WHERE tenant_id = ? AND `usage` < "
+                "UPDATE tenant_capacity SET usage = usage + 1, gmt_modified = ? WHERE tenant_id = ? AND usage < "
                         + "quota AND quota != 0";
         try {
             return jdbcTemplate.update(sql, tenantCapacity.getGmtModified(), tenantCapacity.getTenant()) == 1;
@@ -167,7 +166,7 @@ public class TenantCapacityPersistService {
      * @return operate result.
      */
     public boolean incrementUsage(TenantCapacity tenantCapacity) {
-        String sql = "UPDATE tenant_capacity SET `usage` = `usage` + 1, gmt_modified = ? WHERE tenant_id = ?";
+        String sql = "UPDATE tenant_capacity SET usage = usage + 1, gmt_modified = ? WHERE tenant_id = ?";
         try {
             int affectRow = jdbcTemplate.update(sql, tenantCapacity.getGmtModified(), tenantCapacity.getTenant());
             return affectRow == 1;
@@ -184,7 +183,7 @@ public class TenantCapacityPersistService {
      * @return operate result.
      */
     public boolean decrementUsage(TenantCapacity tenantCapacity) {
-        String sql = "UPDATE tenant_capacity SET `usage` = `usage` - 1, gmt_modified = ? WHERE tenant_id = ? AND `usage` > 0";
+        String sql = "UPDATE tenant_capacity SET usage = usage - 1, gmt_modified = ? WHERE tenant_id = ? AND usage > 0";
         try {
             return jdbcTemplate.update(sql, tenantCapacity.getGmtModified(), tenantCapacity.getTenant()) == 1;
         } catch (CannotGetJdbcConnectionException e) {
@@ -248,7 +247,7 @@ public class TenantCapacityPersistService {
      * @return operate result.
      */
     public boolean correctUsage(String tenant, Timestamp gmtModified) {
-        String sql = "UPDATE tenant_capacity SET `usage` = (SELECT count(*) FROM config_info WHERE tenant_id = ?), "
+        String sql = "UPDATE tenant_capacity SET usage = (SELECT count(*) FROM config_info WHERE tenant_id = ?), "
                 + "gmt_modified = ? WHERE tenant_id = ?";
         try {
             return jdbcTemplate.update(sql, tenant, gmtModified, tenant) == 1;

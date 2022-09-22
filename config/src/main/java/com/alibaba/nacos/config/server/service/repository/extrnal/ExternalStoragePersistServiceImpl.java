@@ -69,7 +69,6 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -2092,7 +2091,7 @@ public class ExternalStoragePersistServiceImpl implements PersistService {
             jt.update(new PreparedStatementCreator() {
                 @Override
                 public PreparedStatement createPreparedStatement(Connection connection) throws SQLException {
-                    PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+                    PreparedStatement ps = connection.prepareStatement(sql, new String[] {"id"});
                     ps.setString(1, configInfo.getDataId());
                     ps.setString(2, configInfo.getGroup());
                     ps.setString(3, tenantTmp);
